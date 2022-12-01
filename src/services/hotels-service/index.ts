@@ -4,7 +4,7 @@ import ticketRepository from "@/repositories/ticket-repository";
 import { notFoundError } from "@/errors";
 import { cannotListHotelsError } from "@/errors/cannot-list-hotels-error";
 
-async function listHotels(userId: number) {
+export async function listHotels(userId: number) {
   //Tem enrollment?
   const enrollment = await enrollmentRepository.findWithAddressByUserId(userId);
   if (!enrollment) {
