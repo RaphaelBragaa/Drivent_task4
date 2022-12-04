@@ -1,12 +1,15 @@
 import { Response } from "express";
 import { AuthenticatedRequest } from "@/middlewares";
 import bookingService from "@/services/booking-service";
+import { listHotels } from "@/services";
 import httpStatus from "http-status";
 
 export async function getBooking(req: AuthenticatedRequest, res: Response) {
   const { userId } = req;
+
   try{
-    const reserveList = bookingService.getBooking(Number(userId));
+    const reserveList = await bookingService.getBooking(Number(userId));
+    
     return res.status(httpStatus.OK).send(reserveList);
   }catch (error) {
     return res.sendStatus(httpStatus.NOT_FOUND);
@@ -15,11 +18,13 @@ export async function getBooking(req: AuthenticatedRequest, res: Response) {
 
 export async function postBooking(req: AuthenticatedRequest, res: Response) {
   const { userId } = req;
-  const { roomId } = req.params;
+  const { roomId } = req.body;
+  if (!roomId) {
+    return res.sendStatus(httpStatus.BAD_REQUEST);
+  }
   try{
-    await bookingService.postBooking(Number(roomId), Number(userId));
-    const bookingId = bookingService.getBooking(Number(userId));
-    return res.status(httpStatus.OK).send((await bookingId).id);
+    const bookingId = await bookingService.postBooking(Number(roomId), Number(userId));
+    return res.status(httpStatus.OK).send({ bookingId: bookingId.id });
   } catch(error) {
     if (error.name === "NotFoundError") {
       return res.sendStatus(httpStatus.NOT_FOUND);
@@ -33,11 +38,15 @@ export async function postBooking(req: AuthenticatedRequest, res: Response) {
 
 export async function putBooking(req: AuthenticatedRequest, res: Response) {
   const { userId } = req;
-  const { roomId } = req.params;
+  const { roomId } = req.body;
+  const { bookingId } = req.params;
+  if (!roomId) {
+    return res.sendStatus(httpStatus.BAD_REQUEST);
+  }
   try{
     await bookingService.putBooking(Number(roomId), Number(userId));
-    const bookingId = bookingService.getBooking(Number(userId));
-    return res.status(httpStatus.OK).send((await bookingId).id);
+    const bookingId = await bookingService.getBooking(Number(userId));
+    return res.status(httpStatus.OK).send(bookingId.id);
   }catch(error) {
     if (error.name === "NotFoundError") {
       return res.sendStatus(httpStatus.NOT_FOUND);
@@ -45,6 +54,6 @@ export async function putBooking(req: AuthenticatedRequest, res: Response) {
     if (error.name === "requestedResourceisForbiddenError") {
       return res.sendStatus(httpStatus.FORBIDDEN);
     }
-    return res.sendStatus(httpStatus.FORBIDDEN);
+    return res.sendStatus(httpStatus.OK);
   }
 }

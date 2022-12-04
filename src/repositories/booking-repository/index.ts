@@ -14,7 +14,7 @@ async function FindBookingById(userId: number) {
 }
 
 async function InsertBooking(booking: BookingParams) {
-  return prisma.booking.create({
+  return await prisma.booking.create({
     data: {
       ...booking
     }
@@ -40,13 +40,20 @@ async function FindRoomById(roomId: number) {
   });
 }
 
+async function CountReservationByRoom(roomId: number) {
+  return await prisma.booking.count({
+    where: { roomId },
+  });
+}
+
 export type BookingParams = Omit<Booking, "id"  | "createdAt" | "updatedAt">
 
 const BookingRepository ={
   FindBookingById,
   InsertBooking,
   DeleteBooking,
-  FindRoomById
+  FindRoomById,
+  CountReservationByRoom
 };
 
 export default BookingRepository;
