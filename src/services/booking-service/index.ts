@@ -1,18 +1,18 @@
 import BookingRepository from "@/repositories/booking-repository";
 import ticketRepository from "@/repositories/ticket-repository";
 import enrollmentRepository from "@/repositories/enrollment-repository";
-import { notFoundError, requestedResourceForbiddenError } from "@/errors";
+import { notFoundError, requestedResourceForbiddenError, unauthorizedError } from "@/errors";
 
 async function listHotels(userId: number) {
   const enrollment = await enrollmentRepository.findWithAddressByUserId(userId);
   if (!enrollment) {
     throw requestedResourceForbiddenError();
   }
-  //Tem ticket pago isOnline false e includesHotel true
+
   const ticket = await ticketRepository.findTicketByEnrollmentId(enrollment.id);
 
   if (!ticket || ticket.status === "RESERVED" || ticket.TicketType.isRemote || !ticket.TicketType.includesHotel) {
-    throw requestedResourceForbiddenError();
+    throw unauthorizedError();
   }
 }
 
@@ -31,7 +31,7 @@ async function postBooking(roomId: number, userId: number) {
     throw notFoundError();
   }
   const capacity = await BookingRepository.CountReservationByRoom(roomId);
-  if (room.capacity - capacity === 0) {
+  if (room.capacity - capacity <= 0) {
     throw requestedResourceForbiddenError();
   }
   const booking = {
@@ -47,14 +47,14 @@ async function putBooking(roomId: number, userId: number) {
   await listHotels(userId);
   const result = await BookingRepository.FindBookingById(userId);
   if(!result) {
-    throw notFoundError;
+    throw notFoundError();
   }
   const room = await BookingRepository.FindRoomById(roomId);
   if(!room) {
-    throw notFoundError;
+    throw notFoundError();
   }
   const capacity = await BookingRepository.CountReservationByRoom(roomId);
-  if (room.capacity - capacity === 0) {
+  if (room.capacity - capacity <= 0) {
     throw requestedResourceForbiddenError();
   }
   const booking = {
@@ -62,7 +62,8 @@ async function putBooking(roomId: number, userId: number) {
     roomId
   };
   await BookingRepository.DeleteBooking(result.id);
-  await BookingRepository.InsertBooking(booking);
+  const view = await BookingRepository.InsertBooking(booking);
+  return view;
 }
 
 const bookingService = {
