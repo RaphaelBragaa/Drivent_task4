@@ -43,16 +43,17 @@ async function postBooking(roomId: number, userId: number) {
   return result;
 }
 
-async function putBooking(roomId: number, userId: number) {
+async function putBooking(roomId: number, userId: number,id: number) {
   await listHotels(userId);
+   const room = await BookingRepository.FindRoomById(roomId);
+  if(!room) {
+    throw notFoundError();
+  }
   const result = await BookingRepository.FindBookingById(userId);
   if(!result) {
     throw notFoundError();
   }
-  const room = await BookingRepository.FindRoomById(roomId);
-  if(!room) {
-    throw notFoundError();
-  }
+ 
   const capacity = await BookingRepository.CountReservationByRoom(roomId);
   if (room.capacity - capacity <= 0) {
     throw requestedResourceForbiddenError();

@@ -13,6 +13,7 @@ import{
   createHotel,
   createRoomWithHotelId,
   createBooking,
+  createTicketTypeRemote
 } from "../factories";
 import { cleanDb, generateValidToken } from "../helpers";
 import BookingRepository from "@/repositories/booking-repository";
@@ -102,11 +103,11 @@ describe("GET /booking", () => {
     
       expect(response.status).toBe(httpStatus.NOT_FOUND);
     });
-    it("should respond 404 when user has no Ticket status for RESERVED ", async () => {
+    it("should respond 404 when user has no Ticket status for RESERVED or Remote Ticket ", async () => {
       const user = await createUser();
       const token = await generateValidToken(user);
       const enrollment = await createEnrollmentWithAddress(user);
-      const ticketType = await createTicketTypeWithHotel();
+      const ticketType = await createTicketTypeRemote();
       const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.RESERVED);
       await createPayment(ticket.id, ticketType.price);
       const hotel = await createHotel();
@@ -298,11 +299,23 @@ describe("PUT /booking/:bookingId", () => {
     const hotel = await createHotel();
     const room = await createRoomWithHotelId(hotel.id);
     await CreateMaxBookingByRoom(room.id);
-    const booking = {
-      id: 1
-    };
+    const booking = await createBooking(room.id, user.id);
     const body = { roomId: room.id };
     const response = await server.put(`/booking/${booking.id}`).set("Authorization", `Bearer ${token}`).send(body);
+
+    expect(response.status).toBe(httpStatus.FORBIDDEN);
+  });
+  it("should respond status code 403 when it does not fulfill the business rule", async () => {
+    const user = await createUser();
+    const token = await generateValidToken(user);
+    const hotel = await createHotel();
+    const room = await createRoomWithHotelId(hotel.id);
+    const booking = await createBooking(room.id, user.id);
+
+    const body = { roomId: room.id };
+
+    const response = await server.put(`/booking/${booking.id}`).set("Authorization", `Bearer ${token}`).send(body);
+    const bookings = await BookingRepository.FindBookingById(user.id);
 
     expect(response.status).toBe(httpStatus.FORBIDDEN);
   });
